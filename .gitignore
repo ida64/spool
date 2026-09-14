@@ -1,0 +1,10 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+*.zip
+__pycache__/
+*.py[cod]
+.DS_Store
+

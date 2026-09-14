@@ -1,0 +1,21 @@
+output "api_endpoint" {
+  description = "POST endpoint for submitting events."
+  value       = "${aws_api_gateway_stage.events.invoke_url}/events"
+}
+
+output "kinesis_stream_name" {
+  value = aws_kinesis_stream.events.name
+}
+
+output "dynamodb_table_name" {
+  value = aws_dynamodb_table.event_counts.name
+}
+
+output "ingest_lambda_name" {
+  value = aws_lambda_function.ingest.function_name
+}
+
+output "processor_lambda_name" {
+  value = aws_lambda_function.processor.function_name
+}
+
