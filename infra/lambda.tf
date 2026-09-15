@@ -71,7 +71,13 @@ resource "aws_lambda_function" "processor" {
   filename         = data.archive_file.processor.output_path
   source_code_hash = data.archive_file.processor.output_base64sha256
   timeout          = 30
-  environment { variables = { TABLE_NAME = aws_dynamodb_table.event_counts.name } }
+
+  environment {
+    variables = {
+      TABLE_NAME       = aws_dynamodb_table.event_counts.name
+      DEDUP_TABLE_NAME = aws_dynamodb_table.processed_events.name
+    }
+  }
 }
 
 resource "aws_lambda_event_source_mapping" "processor" {
