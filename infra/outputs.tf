@@ -23,3 +23,8 @@ output "ingest_lambda_name" {
 output "processor_lambda_name" {
   value = aws_lambda_function.processor.function_name
 }
+
+output "processor_failure_queue_url" {
+  description = "Queue containing processor batches that exhausted retries."
+  value       = aws_sqs_queue.processor_failures.url
+}
