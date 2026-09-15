@@ -8,6 +8,12 @@ output "batch_api_endpoint" {
   value       = "${aws_api_gateway_stage.events.invoke_url}/events/batch"
 }
 
+output "api_key_value" {
+  description = "API Gateway key for Roblox X-API-Key requests. Treat as secret."
+  sensitive   = true
+  value       = aws_api_gateway_api_key.ingest.value
+}
+
 output "kinesis_stream_name" {
   value = aws_kinesis_stream.events.name
 }

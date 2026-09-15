@@ -44,7 +44,13 @@ resource "aws_lambda_function" "ingest" {
   filename         = data.archive_file.ingest.output_path
   source_code_hash = data.archive_file.ingest.output_base64sha256
   timeout          = 10
-  environment { variables = { KINESIS_STREAM_NAME = aws_kinesis_stream.events.name } }
+  environment {
+    variables = {
+      KINESIS_STREAM_NAME = aws_kinesis_stream.events.name
+      INGEST_TOKEN        = var.ingest_token
+      ALLOWED_GAME_ID     = var.allowed_game_id
+    }
+  }
 }
 
 resource "aws_lambda_function" "batch_ingest" {
@@ -59,6 +65,8 @@ resource "aws_lambda_function" "batch_ingest" {
   environment {
     variables = {
       KINESIS_STREAM_NAME = aws_kinesis_stream.events.name
+      INGEST_TOKEN        = var.ingest_token
+      ALLOWED_GAME_ID     = var.allowed_game_id
     }
   }
 }

@@ -2,21 +2,44 @@ import base64
 import json
 import os
 import uuid
+import hmac
 from datetime import datetime, timezone
 
 MAX_BATCH_EVENTS = 100
+MAX_BODY_BYTES = 256 * 1024
 
 import boto3
 
 kinesis = boto3.client("kinesis")
+
+
+def error(status, message):
+    return {"statusCode": status, "headers": {"content-type": "application/json"}, "body": json.dumps({"error": message})}
+
+
+def authorized(event, payload):
+    if not isinstance(payload, dict):
+        return False
+    headers = {str(k).lower(): v for k, v in (event.get("headers") or {}).items()}
+    expected = os.environ.get("INGEST_TOKEN", "")
+    supplied = headers.get("x-spool-token", "")
+    if not expected or not hmac.compare_digest(str(supplied), expected):
+        return False
+    allowed_game_id = os.environ.get("ALLOWED_GAME_ID", "")
+    return not allowed_game_id or str(payload.get("game_id", "")) == allowed_game_id
 
 def lambda_handler(event, _context):
     try:
         body = event.get("body") if isinstance(event, dict) else None
         if event.get("isBase64Encoded"):
             body = base64.b64decode(body or "").decode("utf-8")
+        if len(body or "") > MAX_BODY_BYTES:
+            return error(413, "request body too large")
 
         payload = json.loads(body or "")
+
+        if not authorized(event, payload):
+            return error(403, "invalid credentials or game_id")
 
         if not isinstance(payload, dict) or not isinstance(payload.get("events"), list):
             raise ValueError("events must be a non-empty list")
@@ -62,4 +85,4 @@ def lambda_handler(event, _context):
             "failed": failed
         })}
     except (ValueError, TypeError, json.JSONDecodeError, UnicodeDecodeError):
-        return {"statusCode": 400, "headers": {"content-type": "application/json"}, "body": json.dumps({"error": "invalid JSON or events"})}
+        return error(400, "invalid JSON or events")

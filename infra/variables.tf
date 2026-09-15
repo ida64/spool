@@ -16,3 +16,26 @@ variable "environment" {
   default     = "dev"
 }
 
+variable "ingest_token" {
+  description = "Bearer token accepted by Roblox ingestion requests. Set via TF_VAR_ingest_token."
+  type        = string
+  sensitive   = true
+}
+
+variable "allowed_game_id" {
+  description = "Optional Roblox universe/game ID allowed to submit events. Empty disables the check."
+  type        = string
+  default     = ""
+}
+
+variable "api_rate_limit" {
+  description = "Maximum API requests per second for the Spool usage plan."
+  type        = number
+  default     = 10
+}
+
+variable "api_burst_limit" {
+  description = "Maximum short burst of API requests for the Spool usage plan."
+  type        = number
+  default     = 20
+}
