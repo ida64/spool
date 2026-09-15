@@ -13,6 +13,7 @@ resource "aws_api_gateway_method" "post_events" {
   resource_id   = aws_api_gateway_resource.events.id
   http_method   = "POST"
   authorization = "NONE"
+  api_key_required = true
 }
 
 resource "aws_api_gateway_integration" "post_events" {
@@ -59,6 +60,31 @@ resource "aws_api_gateway_stage" "events" {
   stage_name    = var.environment
 }
 
+resource "aws_api_gateway_api_key" "ingest" {
+  name    = "${local.name_prefix}-ingest-key"
+  enabled = true
+}
+
+resource "aws_api_gateway_usage_plan" "ingest" {
+  name = "${local.name_prefix}-ingest-plan"
+
+  api_stages {
+    api_id = aws_api_gateway_rest_api.events.id
+    stage  = aws_api_gateway_stage.events.stage_name
+  }
+
+  throttle_settings {
+    rate_limit  = var.api_rate_limit
+    burst_limit = var.api_burst_limit
+  }
+}
+
+resource "aws_api_gateway_usage_plan_key" "ingest" {
+  key_id        = aws_api_gateway_api_key.ingest.id
+  key_type      = "API_KEY"
+  usage_plan_id = aws_api_gateway_usage_plan.ingest.id
+}
+
 resource "aws_api_gateway_resource" "batch" {
   rest_api_id = aws_api_gateway_rest_api.events.id
   parent_id   = aws_api_gateway_resource.events.id
@@ -70,6 +96,7 @@ resource "aws_api_gateway_method" "post_batch" {
   resource_id   = aws_api_gateway_resource.batch.id
   http_method   = "POST"
   authorization = "NONE"
+  api_key_required = true
 }
 
 resource "aws_api_gateway_integration" "post_batch" {
