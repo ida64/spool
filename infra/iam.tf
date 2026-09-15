@@ -18,7 +18,7 @@ resource "aws_iam_role_policy" "ingest" {
     Statement = [
       {
         Effect   = "Allow"
-        Action   = ["kinesis:PutRecord"]
+        Action   = ["kinesis:PutRecord", "kinesis:PutRecords"]
         Resource = aws_kinesis_stream.events.arn
       },
       {

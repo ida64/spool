@@ -4,6 +4,12 @@ data "archive_file" "ingest" {
   output_path = "${path.module}/ingest.zip"
 }
 
+data "archive_file" "batch_ingest" {
+  type        = "zip"
+  source_file = "${path.module}/../services/batch_ingest/handler.py"
+  output_path = "${path.module}/batch_ingest.zip"
+}
+
 data "archive_file" "processor" {
   type        = "zip"
   source_file = "${path.module}/../services/processor/handler.py"
@@ -19,6 +25,22 @@ resource "aws_lambda_function" "ingest" {
   source_code_hash = data.archive_file.ingest.output_base64sha256
   timeout          = 10
   environment { variables = { KINESIS_STREAM_NAME = aws_kinesis_stream.events.name } }
+}
+
+resource "aws_lambda_function" "batch_ingest" {
+  function_name    = "${local.name_prefix}-batch-ingest"
+  role             = aws_iam_role.ingest.arn
+  runtime          = "python3.12"
+  handler          = "handler.lambda_handler"
+  filename         = data.archive_file.batch_ingest.output_path
+  source_code_hash = data.archive_file.batch_ingest.output_base64sha256
+  timeout          = 10
+
+  environment {
+    variables = {
+      KINESIS_STREAM_NAME = aws_kinesis_stream.events.name
+    }
+  }
 }
 
 resource "aws_lambda_function" "processor" {
