@@ -21,9 +21,12 @@ handler = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(handler)
 
 
-def record(sequence_number, event_name):
+def record(sequence_number, event_name, event_id=None):
     payload = base64.b64encode(
-        json.dumps({"event": event_name}).encode("utf-8")
+        json.dumps({
+            "id": event_id or f"event-{sequence_number}",
+            "event": event_name,
+        }).encode("utf-8")
     ).decode("utf-8")
     return {
         "kinesis": {
@@ -36,8 +39,9 @@ def record(sequence_number, event_name):
 class ProcessorTests(unittest.TestCase):
     def setUp(self):
         dynamodb.reset_mock()
-        dynamodb.update_item.side_effect = None
+        dynamodb.transact_write_items.side_effect = None
         os.environ["TABLE_NAME"] = "event-counts"
+        os.environ["DEDUP_TABLE_NAME"] = "processed-events"
 
     def test_reports_no_failures_when_every_record_is_processed(self):
         response = handler.lambda_handler(
@@ -46,10 +50,10 @@ class ProcessorTests(unittest.TestCase):
         )
 
         self.assertEqual(response, {"batchItemFailures": []})
-        self.assertEqual(dynamodb.update_item.call_count, 2)
+        self.assertEqual(dynamodb.transact_write_items.call_count, 2)
 
     def test_reports_first_failed_record_and_stops_processing(self):
-        dynamodb.update_item.side_effect = RuntimeError("write failed")
+        dynamodb.transact_write_items.side_effect = RuntimeError("write failed")
 
         response = handler.lambda_handler(
             {"Records": [record("10", "egg_hatched"), record("11", "purchase")]},
@@ -60,7 +64,31 @@ class ProcessorTests(unittest.TestCase):
             response,
             {"batchItemFailures": [{"itemIdentifier": "10"}]},
         )
-        self.assertEqual(dynamodb.update_item.call_count, 1)
+        self.assertEqual(dynamodb.transact_write_items.call_count, 1)
+
+    def test_duplicate_event_is_treated_as_success_without_incrementing(self):
+        duplicate = RuntimeError("duplicate")
+        duplicate.response = {
+            "Error": {"Code": "TransactionCanceledException"},
+            "CancellationReasons": [
+                {"Code": "ConditionalCheckFailed"},
+                {"Code": "None"},
+            ],
+        }
+        dynamodb.transact_write_items.side_effect = [None, duplicate]
+
+        response = handler.lambda_handler(
+            {
+                "Records": [
+                    record("20", "egg_hatched", "same-id"),
+                    record("21", "egg_hatched", "same-id"),
+                ]
+            },
+            None,
+        )
+
+        self.assertEqual(response, {"batchItemFailures": []})
+        self.assertEqual(dynamodb.transact_write_items.call_count, 2)
 
 
 if __name__ == "__main__":

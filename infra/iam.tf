@@ -75,10 +75,13 @@ resource "aws_iam_role_policy" "processor" {
         Effect = "Allow"
 
         Action = [
-          "dynamodb:UpdateItem"
+          "dynamodb:TransactWriteItems"
         ]
 
-        Resource = aws_dynamodb_table.event_counts.arn
+        Resource = [
+          aws_dynamodb_table.event_counts.arn,
+          aws_dynamodb_table.processed_events.arn
+        ]
       },
       {
         Effect = "Allow"
