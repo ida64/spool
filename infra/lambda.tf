@@ -16,6 +16,26 @@ data "archive_file" "processor" {
   output_path = "${path.module}/processor.zip"
 }
 
+data "archive_file" "incident_analyzer" {
+  type        = "zip"
+  source_file = "${path.module}/../services/incident_analyzer/handler.py"
+  output_path = "${path.module}/incident_analyzer.zip"
+}
+
+resource "aws_lambda_function" "incident_analyzer" {
+  function_name = "${local.name_prefix}-incident-analyzer"
+  role          = aws_iam_role.incident_analyzer.arn
+
+  runtime = "python3.12"
+  handler = "handler.lambda_handler"
+
+  filename         = data.archive_file.incident_analyzer.output_path
+  source_code_hash = data.archive_file.incident_analyzer.output_base64sha256
+
+  timeout     = 30
+  memory_size = 128
+}
+
 resource "aws_lambda_function" "ingest" {
   function_name    = "${local.name_prefix}-ingest"
   role             = aws_iam_role.ingest.arn
@@ -61,4 +81,3 @@ resource "aws_lambda_event_source_mapping" "processor" {
   batch_size        = 100
   enabled           = true
 }
-
