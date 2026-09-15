@@ -3,6 +3,11 @@ output "api_endpoint" {
   value       = "${aws_api_gateway_stage.events.invoke_url}/events"
 }
 
+output "batch_api_endpoint" {
+  description = "POST endpoint for submitting batches of events."
+  value       = "${aws_api_gateway_stage.events.invoke_url}/events/batch"
+}
+
 output "kinesis_stream_name" {
   value = aws_kinesis_stream.events.name
 }
@@ -18,4 +23,3 @@ output "ingest_lambda_name" {
 output "processor_lambda_name" {
   value = aws_lambda_function.processor.function_name
 }
-
