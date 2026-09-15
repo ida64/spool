@@ -96,6 +96,15 @@ resource "aws_iam_role_policy" "processor" {
         Effect = "Allow"
 
         Action = [
+          "sqs:SendMessage"
+        ]
+
+        Resource = aws_sqs_queue.processor_failures.arn
+      },
+      {
+        Effect = "Allow"
+
+        Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents"

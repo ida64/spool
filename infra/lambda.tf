@@ -75,9 +75,19 @@ resource "aws_lambda_function" "processor" {
 }
 
 resource "aws_lambda_event_source_mapping" "processor" {
-  event_source_arn  = aws_kinesis_stream.events.arn
-  function_name     = aws_lambda_function.processor.arn
-  starting_position = "LATEST"
-  batch_size        = 100
-  enabled           = true
+  event_source_arn               = aws_kinesis_stream.events.arn
+  function_name                  = aws_lambda_function.processor.arn
+  starting_position              = "LATEST"
+  batch_size                     = 100
+  enabled                        = true
+  function_response_types        = ["ReportBatchItemFailures"]
+  bisect_batch_on_function_error = true
+  maximum_retry_attempts         = 3
+  maximum_record_age_in_seconds  = 3600
+
+  destination_config {
+    on_failure {
+      destination_arn = aws_sqs_queue.processor_failures.arn
+    }
+  }
 }
