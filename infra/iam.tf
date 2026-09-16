@@ -152,7 +152,8 @@ resource "aws_iam_role_policy" "incident_analyzer" {
         Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
-          "logs:PutLogEvents"
+          "logs:PutLogEvents",
+          "logs:FilterLogEvents",
         ]
 
         Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"
