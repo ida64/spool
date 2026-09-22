@@ -37,6 +37,10 @@ def lambda_handler(event, _context):
             return error(413, "request body too large")
 
         payload = json.loads(body or "")
+        headers = {str(k).lower(): v for k, v in (event.get("headers") or {}).items()}
+        stage = str(headers.get("x-spool-stage") or os.environ.get("DEFAULT_STAGE", "prod")).strip()
+        if not stage:
+            raise ValueError("stage must be non-empty")
 
         if not authorized(event, payload):
             return error(403, "invalid credentials or game_id")
@@ -65,6 +69,7 @@ def lambda_handler(event, _context):
                 "id": str(uuid.uuid4()),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "event": event_name,
+                "stage": stage,
                 "payload": {
                     "event": event_name,
                     "properties": properties,
