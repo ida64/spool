@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import time
+from datetime import datetime, timezone
 
 import boto3
 
@@ -25,6 +26,9 @@ def process_record(record):
     event_id = item["id"]
     event_name = item["event"]
     expires_at = int(time.time()) + DEDUP_TTL_SECONDS
+    timestamp = datetime.fromisoformat(item["timestamp"].replace("Z", "+00:00")).astimezone(timezone.utc)
+    hour_bucket = timestamp.strftime("hour#%Y-%m-%dT%H:00:00Z")
+    day_bucket = timestamp.strftime("day#%Y-%m-%d")
 
     try:
         dynamodb.transact_write_items(
@@ -43,6 +47,30 @@ def process_record(record):
                     "Update": {
                         "TableName": os.environ["TABLE_NAME"],
                         "Key": {"event_name": {"S": event_name}},
+                        "UpdateExpression": "ADD #count :increment",
+                        "ExpressionAttributeNames": {"#count": "count"},
+                        "ExpressionAttributeValues": {":increment": {"N": "1"}},
+                    }
+                },
+                {
+                    "Update": {
+                        "TableName": os.environ["BUCKET_TABLE_NAME"],
+                        "Key": {
+                            "event_name": {"S": event_name},
+                            "bucket": {"S": hour_bucket},
+                        },
+                        "UpdateExpression": "ADD #count :increment",
+                        "ExpressionAttributeNames": {"#count": "count"},
+                        "ExpressionAttributeValues": {":increment": {"N": "1"}},
+                    }
+                },
+                {
+                    "Update": {
+                        "TableName": os.environ["BUCKET_TABLE_NAME"],
+                        "Key": {
+                            "event_name": {"S": event_name},
+                            "bucket": {"S": day_bucket},
+                        },
                         "UpdateExpression": "ADD #count :increment",
                         "ExpressionAttributeNames": {"#count": "count"},
                         "ExpressionAttributeValues": {":increment": {"N": "1"}},
