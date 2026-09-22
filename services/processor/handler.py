@@ -24,6 +24,7 @@ def process_record(record):
     item = json.loads(data)
     event_id = item["id"]
     event_name = item["event"]
+    stage = item.get("stage", "prod")
     expires_at = int(time.time()) + DEDUP_TTL_SECONDS
 
     try:
@@ -43,6 +44,18 @@ def process_record(record):
                     "Update": {
                         "TableName": os.environ["TABLE_NAME"],
                         "Key": {"event_name": {"S": event_name}},
+                        "UpdateExpression": "ADD #count :increment",
+                        "ExpressionAttributeNames": {"#count": "count"},
+                        "ExpressionAttributeValues": {":increment": {"N": "1"}},
+                    }
+                },
+                {
+                    "Update": {
+                        "TableName": os.environ["STAGE_TABLE_NAME"],
+                        "Key": {
+                            "stage": {"S": stage},
+                            "event_name": {"S": event_name},
+                        },
                         "UpdateExpression": "ADD #count :increment",
                         "ExpressionAttributeNames": {"#count": "count"},
                         "ExpressionAttributeValues": {":increment": {"N": "1"}},
