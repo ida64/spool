@@ -36,6 +36,10 @@ def lambda_handler(event, _context):
         if len(body or "") > MAX_BODY_BYTES:
             return error(413, "request body too large")
         payload = json.loads(body or "")
+        headers = {str(k).lower(): v for k, v in (event.get("headers") or {}).items()}
+        stage = str(headers.get("x-spool-stage") or os.environ.get("DEFAULT_STAGE", "prod")).strip()
+        if not stage:
+            raise ValueError("stage must be non-empty")
         if not authorized(event, payload):
             return error(403, "invalid credentials or game_id")
         if not isinstance(payload, dict) or not isinstance(payload.get("event"), str) or not payload["event"].strip():
@@ -43,6 +47,6 @@ def lambda_handler(event, _context):
     except (ValueError, TypeError, json.JSONDecodeError, UnicodeDecodeError):
         return error(400, "invalid JSON or event")
 
-    record = {"id": str(uuid.uuid4()), "timestamp": datetime.now(timezone.utc).isoformat(), "event": payload["event"], "payload": payload}
+    record = {"id": str(uuid.uuid4()), "timestamp": datetime.now(timezone.utc).isoformat(), "event": payload["event"], "stage": stage, "payload": payload}
     kinesis.put_record(StreamName=os.environ["KINESIS_STREAM_NAME"], PartitionKey=record["event"], Data=json.dumps(record).encode("utf-8"))
     return {"statusCode": 202, "headers": {"content-type": "application/json"}, "body": json.dumps({"id": record["id"], "status": "accepted"})}
