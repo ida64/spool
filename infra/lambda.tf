@@ -29,6 +29,7 @@ resource "aws_lambda_function" "ingest" {
       KINESIS_STREAM_NAME = aws_kinesis_stream.events.name
       INGEST_TOKEN        = var.ingest_token
       ALLOWED_GAME_ID     = var.allowed_game_id
+      PROJECTS_TABLE_NAME = aws_dynamodb_table.projects.name
     }
   }
 }
@@ -47,6 +48,7 @@ resource "aws_lambda_function" "batch_ingest" {
       KINESIS_STREAM_NAME = aws_kinesis_stream.events.name
       INGEST_TOKEN        = var.ingest_token
       ALLOWED_GAME_ID     = var.allowed_game_id
+      PROJECTS_TABLE_NAME = aws_dynamodb_table.projects.name
     }
   }
 }

@@ -33,6 +33,11 @@ resource "aws_iam_role_policy" "ingest" {
       },
       {
         Effect = "Allow"
+        Action = ["dynamodb:GetItem"]
+        Resource = aws_dynamodb_table.projects.arn
+      },
+      {
+        Effect = "Allow"
 
         Action = [
           "logs:CreateLogGroup",
