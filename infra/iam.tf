@@ -80,7 +80,8 @@ resource "aws_iam_role_policy" "processor" {
 
         Resource = [
           aws_dynamodb_table.event_counts.arn,
-          aws_dynamodb_table.processed_events.arn
+          aws_dynamodb_table.processed_events.arn,
+          aws_dynamodb_table.event_buckets.arn
         ]
       },
       {
