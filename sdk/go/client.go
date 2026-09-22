@@ -159,10 +159,13 @@ func (c *Client) TrackBatch(
 		)
 	}
 
-	for index := range events {
-		events[index].Name = strings.TrimSpace(events[index].Name)
+	normalizedEvents := make([]Event, len(events))
+	copy(normalizedEvents, events)
 
-		if events[index].Name == "" {
+	for index := range normalizedEvents {
+		normalizedEvents[index].Name = strings.TrimSpace(normalizedEvents[index].Name)
+
+		if normalizedEvents[index].Name == "" {
 			return nil, fmt.Errorf(
 				"spool: event at index %d has an empty name",
 				index,
@@ -173,7 +176,7 @@ func (c *Client) TrackBatch(
 	payload := struct {
 		Events []Event `json:"events"`
 	}{
-		Events: events,
+		Events: normalizedEvents,
 	}
 
 	var response BatchResponse
