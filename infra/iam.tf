@@ -33,6 +33,11 @@ resource "aws_iam_role_policy" "ingest" {
       },
       {
         Effect = "Allow"
+        Action = ["dynamodb:GetItem"]
+        Resource = aws_dynamodb_table.projects.arn
+      },
+      {
+        Effect = "Allow"
 
         Action = [
           "logs:CreateLogGroup",
@@ -115,75 +120,6 @@ resource "aws_iam_role_policy" "processor" {
         ]
 
         Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"
-      }
-    ]
-  })
-}
-
-
-resource "aws_iam_role" "incident_analyzer" {
-  name = "${local.name_prefix}-incident-analyzer-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-
-    Statement = [{
-      Effect = "Allow"
-
-      Principal = {
-        Service = "lambda.amazonaws.com"
-      }
-
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-resource "aws_iam_role_policy" "incident_analyzer" {
-  name = "${local.name_prefix}-incident-analyzer-policy"
-  role = aws_iam_role.incident_analyzer.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-
-    Statement = [
-      {
-        Effect = "Allow"
-
-        Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-          "logs:FilterLogEvents",
-        ]
-
-        Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"
-      },
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "logs:FilterLogEvents"
-        ]
-
-        Resource = [
-          "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${aws_lambda_function.processor.function_name}",
-          "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${aws_lambda_function.processor.function_name}:*"
-        ]
-      },
-
-      {
-        Effect = "Allow"
-
-        Action = [
-          "bedrock:InvokeModel"
-        ]
-
-        Resource = [
-          "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/us.amazon.nova-2-lite-v1:0",
-          "arn:aws:bedrock:*::foundation-model/amazon.nova-2-lite-v1:0"
-        ]
       }
     ]
   })
