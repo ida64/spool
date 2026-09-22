@@ -24,3 +24,21 @@ resource "aws_dynamodb_table" "processed_events" {
     enabled        = true
   }
 }
+
+
+resource "aws_dynamodb_table" "event_buckets" {
+  name         = "${local.name_prefix}-event-buckets"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "event_name"
+  range_key    = "bucket"
+
+  attribute {
+    name = "event_name"
+    type = "S"
+  }
+
+  attribute {
+    name = "bucket"
+    type = "S"
+  }
+}
