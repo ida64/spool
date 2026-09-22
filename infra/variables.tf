@@ -39,3 +39,10 @@ variable "api_burst_limit" {
   type        = number
   default     = 20
 }
+
+
+variable "default_project_id" {
+  description = "Project ID seeded with the legacy ingest token."
+  type        = string
+  default     = "default"
+}
