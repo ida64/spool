@@ -9,10 +9,10 @@ resource "aws_api_gateway_resource" "events" {
 }
 
 resource "aws_api_gateway_method" "post_events" {
-  rest_api_id   = aws_api_gateway_rest_api.events.id
-  resource_id   = aws_api_gateway_resource.events.id
-  http_method   = "POST"
-  authorization = "NONE"
+  rest_api_id      = aws_api_gateway_rest_api.events.id
+  resource_id      = aws_api_gateway_resource.events.id
+  http_method      = "POST"
+  authorization    = "NONE"
   api_key_required = true
 }
 
@@ -95,10 +95,10 @@ resource "aws_api_gateway_resource" "batch" {
 }
 
 resource "aws_api_gateway_method" "post_batch" {
-  rest_api_id   = aws_api_gateway_rest_api.events.id
-  resource_id   = aws_api_gateway_resource.batch.id
-  http_method   = "POST"
-  authorization = "NONE"
+  rest_api_id      = aws_api_gateway_rest_api.events.id
+  resource_id      = aws_api_gateway_resource.batch.id
+  http_method      = "POST"
+  authorization    = "NONE"
   api_key_required = true
 }
 

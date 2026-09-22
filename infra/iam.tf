@@ -32,8 +32,8 @@ resource "aws_iam_role_policy" "ingest" {
         Resource = aws_kinesis_stream.events.arn
       },
       {
-        Effect = "Allow"
-        Action = ["dynamodb:GetItem"]
+        Effect   = "Allow"
+        Action   = ["dynamodb:GetItem"]
         Resource = aws_dynamodb_table.projects.arn
       },
       {
@@ -80,7 +80,9 @@ resource "aws_iam_role_policy" "processor" {
         Effect = "Allow"
 
         Action = [
-          "dynamodb:TransactWriteItems"
+          "dynamodb:TransactWriteItems",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem"
         ]
 
         Resource = [
@@ -131,9 +133,9 @@ resource "aws_iam_role" "metrics_query" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect = "Allow"
+      Effect    = "Allow"
       Principal = { Service = "lambda.amazonaws.com" }
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
 }
@@ -146,13 +148,13 @@ resource "aws_iam_role_policy" "metrics_query" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = ["dynamodb:Query"]
+        Effect   = "Allow"
+        Action   = ["dynamodb:Query"]
         Resource = aws_dynamodb_table.event_buckets.arn
       },
       {
-        Effect = "Allow"
-        Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"
       }
     ]
@@ -165,9 +167,9 @@ resource "aws_iam_role" "archiver" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect = "Allow"
+      Effect    = "Allow"
       Principal = { Service = "lambda.amazonaws.com" }
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
 }
@@ -180,18 +182,18 @@ resource "aws_iam_role_policy" "archiver" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = ["kinesis:GetRecords", "kinesis:GetShardIterator", "kinesis:DescribeStream", "kinesis:ListShards"]
+        Effect   = "Allow"
+        Action   = ["kinesis:GetRecords", "kinesis:GetShardIterator", "kinesis:DescribeStream", "kinesis:ListShards"]
         Resource = aws_kinesis_stream.events.arn
       },
       {
-        Effect = "Allow"
-        Action = ["s3:PutObject"]
+        Effect   = "Allow"
+        Action   = ["s3:PutObject"]
         Resource = "${aws_s3_bucket.event_archive.arn}/*"
       },
       {
-        Effect = "Allow"
-        Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"
       }
     ]
