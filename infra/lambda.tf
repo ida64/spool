@@ -16,26 +16,6 @@ data "archive_file" "processor" {
   output_path = "${path.module}/processor.zip"
 }
 
-data "archive_file" "incident_analyzer" {
-  type        = "zip"
-  source_file = "${path.module}/../services/incident_analyzer/handler.py"
-  output_path = "${path.module}/incident_analyzer.zip"
-}
-
-resource "aws_lambda_function" "incident_analyzer" {
-  function_name = "${local.name_prefix}-incident-analyzer"
-  role          = aws_iam_role.incident_analyzer.arn
-
-  runtime = "python3.12"
-  handler = "handler.lambda_handler"
-
-  filename         = data.archive_file.incident_analyzer.output_path
-  source_code_hash = data.archive_file.incident_analyzer.output_base64sha256
-
-  timeout     = 30
-  memory_size = 128
-}
-
 resource "aws_lambda_function" "ingest" {
   function_name    = "${local.name_prefix}-ingest"
   role             = aws_iam_role.ingest.arn
@@ -49,6 +29,7 @@ resource "aws_lambda_function" "ingest" {
       KINESIS_STREAM_NAME = aws_kinesis_stream.events.name
       INGEST_TOKEN        = var.ingest_token
       ALLOWED_GAME_ID     = var.allowed_game_id
+      PROJECTS_TABLE_NAME = aws_dynamodb_table.projects.name
     }
   }
 }
@@ -67,6 +48,7 @@ resource "aws_lambda_function" "batch_ingest" {
       KINESIS_STREAM_NAME = aws_kinesis_stream.events.name
       INGEST_TOKEN        = var.ingest_token
       ALLOWED_GAME_ID     = var.allowed_game_id
+      PROJECTS_TABLE_NAME = aws_dynamodb_table.projects.name
     }
   }
 }
@@ -83,7 +65,8 @@ resource "aws_lambda_function" "processor" {
   environment {
     variables = {
       TABLE_NAME       = aws_dynamodb_table.event_counts.name
-      DEDUP_TABLE_NAME = aws_dynamodb_table.processed_events.name
+      DEDUP_TABLE_NAME  = aws_dynamodb_table.processed_events.name
+      BUCKET_TABLE_NAME = aws_dynamodb_table.event_buckets.name
     }
   }
 }
@@ -106,6 +89,27 @@ resource "aws_lambda_event_source_mapping" "processor" {
   }
 }
 
+data "archive_file" "metrics_query" {
+  type        = "zip"
+  source_file = "${path.module}/../services/metrics_query/handler.py"
+  output_path = "${path.module}/metrics_query.zip"
+}
+
+resource "aws_lambda_function" "metrics_query" {
+  function_name    = "${local.name_prefix}-metrics-query"
+  role             = aws_iam_role.metrics_query.arn
+  runtime          = "python3.12"
+  handler          = "handler.lambda_handler"
+  filename         = data.archive_file.metrics_query.output_path
+  source_code_hash = data.archive_file.metrics_query.output_base64sha256
+  timeout          = 10
+
+  environment {
+    variables = {
+      BUCKET_TABLE_NAME = aws_dynamodb_table.event_buckets.name
+    }
+  }
+}
 
 data "archive_file" "archiver" {
   type        = "zip"
