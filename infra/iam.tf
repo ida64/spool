@@ -188,3 +188,37 @@ resource "aws_iam_role_policy" "incident_analyzer" {
     ]
   })
 }
+
+resource "aws_iam_role" "metrics_query" {
+  name = "${local.name_prefix}-metrics-query-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "metrics_query" {
+  name = "${local.name_prefix}-metrics-query-policy"
+  role = aws_iam_role.metrics_query.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["dynamodb:Query"]
+        Resource = aws_dynamodb_table.event_buckets.arn
+      },
+      {
+        Effect = "Allow"
+        Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"
+      }
+    ]
+  })
+}
