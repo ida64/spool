@@ -147,6 +147,45 @@ func TestTrackRejectsEmptyName(t *testing.T) {
 	}
 }
 
+
+func TestTrackBatchDoesNotMutateInput(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(writer http.ResponseWriter, request *http.Request) {
+			var payload struct {
+				Events []Event `json:"events"`
+			}
+
+			if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+				t.Errorf("decode request: %v", err)
+			}
+
+			if got := payload.Events[0].Name; got != "player_joined" {
+				t.Errorf("normalized event name = %q, want player_joined", got)
+			}
+
+			writer.Header().Set("Content-Type", "application/json")
+			writer.WriteHeader(http.StatusAccepted)
+			_, _ = writer.Write([]byte(`{"accepted":1,"failed":0}`))
+		},
+	))
+	defer server.Close()
+
+	client, err := NewClient(server.URL)
+	if err != nil {
+		t.Fatalf("NewClient returned an error: %v", err)
+	}
+
+	events := []Event{{Name: "  player_joined  "}}
+	_, err = client.TrackBatch(context.Background(), events)
+	if err != nil {
+		t.Fatalf("TrackBatch returned an error: %v", err)
+	}
+
+	if got := events[0].Name; got != "  player_joined  " {
+		t.Errorf("TrackBatch mutated input event name to %q", got)
+	}
+}
+
 func TestTrackBatchRejectsTooManyEvents(t *testing.T) {
 	client, err := NewClient("https://example.com")
 	if err != nil {
