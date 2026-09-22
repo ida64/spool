@@ -84,6 +84,7 @@ resource "aws_lambda_function" "processor" {
     variables = {
       TABLE_NAME       = aws_dynamodb_table.event_counts.name
       DEDUP_TABLE_NAME = aws_dynamodb_table.processed_events.name
+      BUCKET_TABLE_NAME = aws_dynamodb_table.event_buckets.name
     }
   }
 }
