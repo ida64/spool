@@ -105,3 +105,33 @@ resource "aws_lambda_event_source_mapping" "processor" {
     }
   }
 }
+
+
+data "archive_file" "archiver" {
+  type        = "zip"
+  source_file = "${path.module}/../services/archiver/handler.py"
+  output_path = "${path.module}/archiver.zip"
+}
+
+resource "aws_lambda_function" "archiver" {
+  function_name    = "${local.name_prefix}-archiver"
+  role             = aws_iam_role.archiver.arn
+  runtime          = "python3.12"
+  handler          = "handler.lambda_handler"
+  filename         = data.archive_file.archiver.output_path
+  source_code_hash = data.archive_file.archiver.output_base64sha256
+  timeout          = 30
+
+  environment {
+    variables = {
+      ARCHIVE_BUCKET = aws_s3_bucket.event_archive.bucket
+    }
+  }
+}
+
+resource "aws_lambda_event_source_mapping" "archiver" {
+  event_source_arn  = aws_kinesis_stream.events.arn
+  function_name     = aws_lambda_function.archiver.arn
+  starting_position = "LATEST"
+  batch_size        = 100
+}
