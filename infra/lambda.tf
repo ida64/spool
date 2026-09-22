@@ -106,3 +106,26 @@ resource "aws_lambda_event_source_mapping" "processor" {
     }
   }
 }
+
+
+data "archive_file" "metrics_query" {
+  type        = "zip"
+  source_file = "${path.module}/../services/metrics_query/handler.py"
+  output_path = "${path.module}/metrics_query.zip"
+}
+
+resource "aws_lambda_function" "metrics_query" {
+  function_name    = "${local.name_prefix}-metrics-query"
+  role             = aws_iam_role.metrics_query.arn
+  runtime          = "python3.12"
+  handler          = "handler.lambda_handler"
+  filename         = data.archive_file.metrics_query.output_path
+  source_code_hash = data.archive_file.metrics_query.output_base64sha256
+  timeout          = 10
+
+  environment {
+    variables = {
+      BUCKET_TABLE_NAME = aws_dynamodb_table.event_buckets.name
+    }
+  }
+}
