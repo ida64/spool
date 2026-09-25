@@ -14,7 +14,7 @@ athena = boto3.client("athena")
 dynamodb = boto3.client("dynamodb")
 s3 = boto3.client("s3")
 
-RELATIVE_TIME = re.compile(r"^(\\d+)([mhd])$")
+RELATIVE_TIME = re.compile(r"^(\d+)([mhd])$")
 
 
 def response(status, body):
