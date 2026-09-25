@@ -38,7 +38,9 @@ resource "aws_api_gateway_deployment" "events" {
   depends_on = [
     aws_api_gateway_integration.post_events,
     aws_api_gateway_integration.post_batch,
-    aws_api_gateway_integration.get_metric_event
+    aws_api_gateway_integration.get_metric_event,
+    aws_api_gateway_integration.get_event_search,
+    aws_api_gateway_integration.get_event_by_id
   ]
 
   triggers = {
@@ -48,7 +50,11 @@ resource "aws_api_gateway_deployment" "events" {
       aws_api_gateway_method.post_batch.id,
       aws_api_gateway_integration.post_batch.id,
       aws_api_gateway_method.get_metric_event.id,
-      aws_api_gateway_integration.get_metric_event.id
+      aws_api_gateway_integration.get_metric_event.id,
+      aws_api_gateway_method.get_event_search.id,
+      aws_api_gateway_integration.get_event_search.id,
+      aws_api_gateway_method.get_event_by_id.id,
+      aws_api_gateway_integration.get_event_by_id.id
     ]))
   }
 
@@ -155,4 +161,77 @@ resource "aws_lambda_permission" "api_gateway_metrics_query" {
   function_name = aws_lambda_function.metrics_query.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.events.execution_arn}/*/GET/metrics/*"
+}
+
+
+resource "aws_api_gateway_resource" "api" {
+  rest_api_id = aws_api_gateway_rest_api.events.id
+  parent_id   = aws_api_gateway_rest_api.events.root_resource_id
+  path_part   = "api"
+}
+
+resource "aws_api_gateway_resource" "v1" {
+  rest_api_id = aws_api_gateway_rest_api.events.id
+  parent_id   = aws_api_gateway_resource.api.id
+  path_part   = "v1"
+}
+
+resource "aws_api_gateway_resource" "v1_events" {
+  rest_api_id = aws_api_gateway_rest_api.events.id
+  parent_id   = aws_api_gateway_resource.v1.id
+  path_part   = "events"
+}
+
+resource "aws_api_gateway_resource" "event_search" {
+  rest_api_id = aws_api_gateway_rest_api.events.id
+  parent_id   = aws_api_gateway_resource.v1_events.id
+  path_part   = "search"
+}
+
+resource "aws_api_gateway_method" "get_event_search" {
+  rest_api_id      = aws_api_gateway_rest_api.events.id
+  resource_id      = aws_api_gateway_resource.event_search.id
+  http_method      = "GET"
+  authorization    = "NONE"
+  api_key_required = true
+}
+
+resource "aws_api_gateway_integration" "get_event_search" {
+  rest_api_id             = aws_api_gateway_rest_api.events.id
+  resource_id             = aws_api_gateway_resource.event_search.id
+  http_method             = aws_api_gateway_method.get_event_search.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.event_search.invoke_arn
+}
+
+resource "aws_api_gateway_resource" "event_by_id" {
+  rest_api_id = aws_api_gateway_rest_api.events.id
+  parent_id   = aws_api_gateway_resource.v1_events.id
+  path_part   = "{event_id}"
+}
+
+resource "aws_api_gateway_method" "get_event_by_id" {
+  rest_api_id      = aws_api_gateway_rest_api.events.id
+  resource_id      = aws_api_gateway_resource.event_by_id.id
+  http_method      = "GET"
+  authorization    = "NONE"
+  api_key_required = true
+}
+
+resource "aws_api_gateway_integration" "get_event_by_id" {
+  rest_api_id             = aws_api_gateway_rest_api.events.id
+  resource_id             = aws_api_gateway_resource.event_by_id.id
+  http_method             = aws_api_gateway_method.get_event_by_id.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.event_search.invoke_arn
+}
+
+resource "aws_lambda_permission" "api_gateway_event_search" {
+  statement_id  = "AllowApiGatewayInvokeEventSearch"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.event_search.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.events.execution_arn}/*/GET/api/v1/events/*"
 }
