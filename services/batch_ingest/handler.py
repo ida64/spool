@@ -48,6 +48,7 @@ def authorized(event, payload):
     allowed_game_id = os.environ.get("ALLOWED_GAME_ID", "")
     return not allowed_game_id or str(payload.get("game_id", "")) == allowed_game_id
 
+
 def lambda_handler(event, _context):
     try:
         body = event.get("body") if isinstance(event, dict) else None
@@ -66,7 +67,7 @@ def lambda_handler(event, _context):
 
         if len(payload["events"]) == 0:
             raise ValueError("events must be a non-empty list")
-        
+
         if len(payload["events"]) > MAX_BATCH_EVENTS:
             raise ValueError(f"events must not exceed {MAX_BATCH_EVENTS} items")
 
@@ -80,17 +81,24 @@ def lambda_handler(event, _context):
                 raise ValueError("properties must be an object")
 
             event_name = event_item["event"].strip()
+            event_payload = {
+                "event": event_name,
+                "project_id": payload["project_id"],
+                "properties": properties,
+            }
+
+            for field in ("stage", "game_id", "place_id"):
+                value = event_item.get(field, payload.get(field))
+                if value is not None:
+                    event_payload[field] = value
 
             record = {
                 "id": str(uuid.uuid4()),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "event": event_name,
-                "payload": {
-                    "event": event_name,
-                    "properties": properties,
-                },
+                "payload": event_payload,
             }
-            
+
             k_events.append({
                 "PartitionKey": record["event"],
                 "Data": json.dumps(record).encode("utf-8")
