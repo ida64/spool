@@ -49,7 +49,7 @@ resource "aws_glue_catalog_table" "events" {
     "projection.hour.type"       = "integer"
     "projection.hour.range"      = "0,23"
     "projection.hour.digits"     = "2"
-    "storage.location.template"  = "s3://${aws_s3_bucket.event_archive.bucket}/year=\$${year}/month=\$${month}/day=\$${day}/hour=\$${hour}/"
+    "storage.location.template"  = "s3://${aws_s3_bucket.event_archive.bucket}/year=${year}/month=${month}/day=${day}/hour=${hour}/"
   }
 
   partition_keys {
