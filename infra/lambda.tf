@@ -128,7 +128,8 @@ resource "aws_lambda_function" "archiver" {
 
   environment {
     variables = {
-      ARCHIVE_BUCKET = aws_s3_bucket.event_archive.bucket
+      ARCHIVE_BUCKET         = aws_s3_bucket.event_archive.bucket
+      EVENT_INDEX_TABLE_NAME = aws_dynamodb_table.event_index.name
     }
   }
 }
@@ -138,4 +139,34 @@ resource "aws_lambda_event_source_mapping" "archiver" {
   function_name     = aws_lambda_function.archiver.arn
   starting_position = "LATEST"
   batch_size        = 100
+}
+
+
+data "archive_file" "event_search" {
+  type        = "zip"
+  source_file = "${path.module}/../services/event_search/handler.py"
+  output_path = "${path.module}/event_search.zip"
+}
+
+resource "aws_lambda_function" "event_search" {
+  function_name    = "${local.name_prefix}-event-search"
+  role             = aws_iam_role.event_search.arn
+  runtime          = "python3.12"
+  handler          = "handler.lambda_handler"
+  filename         = data.archive_file.event_search.output_path
+  source_code_hash = data.archive_file.event_search.output_base64sha256
+  timeout          = 15
+  memory_size      = 256
+
+  environment {
+    variables = {
+      PROJECTS_TABLE_NAME   = aws_dynamodb_table.projects.name
+      EVENT_INDEX_TABLE_NAME = aws_dynamodb_table.event_index.name
+      ARCHIVE_BUCKET        = aws_s3_bucket.event_archive.bucket
+      ATHENA_DATABASE       = aws_glue_catalog_database.telemetry.name
+      ATHENA_TABLE          = aws_glue_catalog_table.events.name
+      ATHENA_WORKGROUP      = aws_athena_workgroup.event_search.name
+      PAGINATION_SECRET     = sha256(var.ingest_token)
+    }
+  }
 }

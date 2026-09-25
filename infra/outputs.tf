@@ -34,3 +34,14 @@ output "processor_failure_queue_url" {
   description = "Queue containing processor batches that exhausted retries."
   value       = aws_sqs_queue.processor_failures.url
 }
+
+
+output "event_search_api_endpoint" {
+  description = "GET endpoint for searching archived events."
+  value       = "${aws_api_gateway_stage.events.invoke_url}/api/v1/events/search"
+}
+
+output "event_lookup_api_endpoint" {
+  description = "GET endpoint prefix for retrieving one archived event by ID."
+  value       = "${aws_api_gateway_stage.events.invoke_url}/api/v1/events"
+}
